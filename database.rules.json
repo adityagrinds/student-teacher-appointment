@@ -1,0 +1,279 @@
+{
+  "rules": {
+    "users": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".indexOn": [
+        "role"
+      ],
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (auth.uid === $uid && (!data.exists() ? ((newData.child('role').val() === 'student' || newData.child('role').val() === 'teacher') && newData.child('isActive').val() === true) : (!newData.exists() || (newData.child('role').val() === data.child('role').val() && newData.child('isActive').val() === data.child('isActive').val())))))",
+        ".validate": "newData.hasChildren(['uid', 'name', 'email', 'role', 'isActive', 'createdAt'])",
+        "uid": {
+          ".validate": "newData.val() === $uid"
+        },
+        "name": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
+        },
+        "email": {
+          ".validate": "newData.isString() && newData.val().length <= 200"
+        },
+        "role": {
+          ".validate": "newData.val() === 'student' || newData.val() === 'teacher' || newData.val() === 'admin'"
+        },
+        "isActive": {
+          ".validate": "newData.isBoolean()"
+        },
+        "$other": {
+          ".validate": true
+        }
+      }
+    },
+    "teachers": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (auth.uid === $uid && root.child('users').child($uid).child('role').val() === 'teacher' && (!newData.exists() || newData.child('isActive').val() === root.child('users').child($uid).child('isActive').val())))",
+        ".validate": "newData.hasChildren(['name', 'department', 'designation', 'cabinNo', 'isActive'])",
+        "isActive": {
+          ".validate": "newData.isBoolean()"
+        },
+        "$other": {
+          ".validate": true
+        }
+      }
+    },
+    "availabilitySlots": {
+      ".read": "auth != null",
+      ".indexOn": [
+        "teacherId",
+        "date"
+      ],
+      "$slotId": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (!data.exists() && newData.child('teacherId').val() === auth.uid && root.child('users').child(auth.uid).child('role').val() === 'teacher' && root.child('users').child(auth.uid).child('isActive').val() === true) || (data.exists() && data.child('teacherId').val() === auth.uid))",
+        ".validate": "newData.hasChildren(['teacherId', 'teacherName', 'date', 'startTime', 'endTime', 'slotDuration', 'cabinNo', 'status', 'createdAt'])",
+        "teacherId": {
+          ".validate": "newData.isString() && newData.val().length <= 128 && (!data.exists() || data.val() === newData.val())"
+        },
+        "teacherName": {
+          ".validate": "newData.isString() && newData.val().length <= 100"
+        },
+        "date": {
+          ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)"
+        },
+        "startTime": {
+          ".validate": "newData.isString() && newData.val().matches(/^[0-9]{2}:[0-9]{2}$/)"
+        },
+        "endTime": {
+          ".validate": "newData.isString() && newData.val().matches(/^[0-9]{2}:[0-9]{2}$/)"
+        },
+        "slotDuration": {
+          ".validate": "newData.isNumber() && newData.val() >= 5 && newData.val() <= 180"
+        },
+        "cabinNo": {
+          ".validate": "newData.isString() && newData.val().length <= 100 && newData.val().length > 0"
+        },
+        "instructions": {
+          ".validate": "newData.isString() && newData.val().length <= 500"
+        },
+        "status": {
+          ".validate": "newData.val() === 'ACTIVE' || newData.val() === 'CLOSED' || newData.val() === 'CANCELLED'"
+        },
+        "createdAt": {
+          ".validate": "newData.isString() && newData.val().length <= 40 && (!data.exists() || data.val() === newData.val())"
+        },
+        "updatedAt": {
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "availabilityBookings": {
+      ".read": "auth != null",
+      "$slotId": {
+        "$timeKey": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (!data.exists() && newData.exists() && newData.child('studentId').val() === auth.uid && root.child('users').child(auth.uid).child('isActive').val() === true && root.child('availabilitySlots').child($slotId).child('status').val() === 'ACTIVE' && newData.child('teacherId').val() === root.child('availabilitySlots').child($slotId).child('teacherId').val() && newData.child('status').val() === 'PENDING') || (data.exists() && data.child('teacherId').val() === auth.uid) || (data.exists() && !newData.exists() && data.child('studentId').val() === auth.uid))",
+          ".validate": "newData.hasChildren(['appointmentId', 'studentId', 'teacherId', 'status'])",
+          "appointmentId": {
+            ".validate": "newData.isString() && newData.val().length <= 128 && (!data.exists() || data.val() === newData.val())"
+          },
+          "studentId": {
+            ".validate": "newData.isString() && newData.val().length <= 128 && (!data.exists() || data.val() === newData.val())"
+          },
+          "teacherId": {
+            ".validate": "newData.isString() && newData.val().length <= 128 && (!data.exists() || data.val() === newData.val())"
+          },
+          "status": {
+            ".validate": "newData.val() === 'PENDING' || newData.val() === 'APPROVED' || newData.val() === 'COMPLETED'"
+          },
+          "createdAt": {
+            ".validate": "newData.isString() && newData.val().length <= 40"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    },
+    "appointments": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (query.orderByChild === 'studentId' && query.equalTo === auth.uid) || (query.orderByChild === 'teacherId' && query.equalTo === auth.uid))",
+      ".indexOn": [
+        "studentId",
+        "teacherId",
+        "slotId",
+        "status"
+      ],
+      "$appointmentId": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || data.child('studentId').val() === auth.uid || data.child('teacherId').val() === auth.uid)",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (!data.exists() && newData.exists() && newData.child('studentId').val() === auth.uid && newData.child('status').val() === 'PENDING' && root.child('users').child(auth.uid).child('isActive').val() === true && root.child('availabilitySlots').child(newData.child('slotId').val()).child('status').val() === 'ACTIVE' && root.child('availabilitySlots').child(newData.child('slotId').val()).child('teacherId').val() === newData.child('teacherId').val() && root.child('availabilityBookings').child(newData.child('slotId').val()).child(newData.child('timeKey').val()).child('appointmentId').val() === $appointmentId && root.child('availabilityBookings').child(newData.child('slotId').val()).child(newData.child('timeKey').val()).child('studentId').val() === auth.uid && newData.child('slotStartAt').val() > now) || (data.exists() && newData.exists() && data.child('teacherId').val() === auth.uid) || (data.exists() && newData.exists() && data.child('studentId').val() === auth.uid && newData.child('status').val() === 'CANCELLED' && (data.child('status').val() === 'PENDING' || data.child('status').val() === 'APPROVED') && newData.child('teacherNote').val() === data.child('teacherNote').val()))",
+        ".validate": "newData.hasChildren(['bookingId', 'slotId', 'teacherId', 'studentId', 'teacherName', 'studentName', 'date', 'startTime', 'timeKey', 'timeSlot', 'purposeCategory', 'reasonDetails', 'status', 'slotStartAt', 'createdAt'])",
+        "bookingId": {
+          ".validate": "newData.isString() && newData.val().length <= 200 && (!data.exists() || data.val() === newData.val())"
+        },
+        "slotId": {
+          ".validate": "newData.isString() && newData.val().length <= 200 && (!data.exists() || data.val() === newData.val())"
+        },
+        "teacherId": {
+          ".validate": "newData.isString() && newData.val().length <= 200 && (!data.exists() || data.val() === newData.val())"
+        },
+        "studentId": {
+          ".validate": "newData.isString() && newData.val().length <= 200 && (!data.exists() || data.val() === newData.val())"
+        },
+        "teacherName": {
+          ".validate": "newData.isString() && newData.val().length <= 200 && (!data.exists() || data.val() === newData.val())"
+        },
+        "studentName": {
+          ".validate": "newData.isString() && newData.val().length <= 200 && (!data.exists() || data.val() === newData.val())"
+        },
+        "studentRollNo": {
+          ".validate": "newData.isString() && newData.val().length <= 200 && (!data.exists() || data.val() === newData.val())"
+        },
+        "date": {
+          ".validate": "newData.isString() && newData.val().length <= 200 && (!data.exists() || data.val() === newData.val())"
+        },
+        "startTime": {
+          ".validate": "newData.isString() && newData.val().length <= 200 && (!data.exists() || data.val() === newData.val())"
+        },
+        "timeKey": {
+          ".validate": "newData.isString() && newData.val().length <= 200 && (!data.exists() || data.val() === newData.val())"
+        },
+        "timeSlot": {
+          ".validate": "newData.isString() && newData.val().length <= 200 && (!data.exists() || data.val() === newData.val())"
+        },
+        "cabinNo": {
+          ".validate": "newData.isString() && newData.val().length <= 200 && (!data.exists() || data.val() === newData.val())"
+        },
+        "purposeCategory": {
+          ".validate": "newData.isString() && newData.val().length <= 200 && (!data.exists() || data.val() === newData.val())"
+        },
+        "createdAt": {
+          ".validate": "newData.isString() && newData.val().length <= 200 && (!data.exists() || data.val() === newData.val())"
+        },
+        "reasonDetails": {
+          ".validate": "newData.isString() && newData.val().length >= 10 && newData.val().length <= 500 && (!data.exists() || data.val() === newData.val())"
+        },
+        "slotStartAt": {
+          ".validate": "newData.isNumber() && (!data.exists() || data.val() === newData.val())"
+        },
+        "status": {
+          ".validate": "newData.val() === 'PENDING' || newData.val() === 'APPROVED' || newData.val() === 'REJECTED' || newData.val() === 'CANCELLED' || newData.val() === 'COMPLETED'"
+        },
+        "teacherNote": {
+          ".validate": "newData.isString() && newData.val().length <= 500"
+        },
+        "adminNote": {
+          ".validate": "newData.isString() && newData.val().length <= 500"
+        },
+        "rejectionReason": {
+          ".validate": "newData.isString() && newData.val().length <= 500"
+        },
+        "cancellationReason": {
+          ".validate": "newData.isString() && newData.val().length <= 500"
+        },
+        "updatedAt": {
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "counters": {
+      "bookingSeq": {
+        ".read": false,
+        ".write": "auth != null && root.child('users').child(auth.uid).child('isActive').val() === true && ((!data.exists() && newData.val() === 1) || newData.val() === data.val() + 1)",
+        ".validate": "newData.isNumber()"
+      }
+    },
+    "notifications": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (query.orderByChild === 'userId' && query.equalTo === auth.uid))",
+      ".indexOn": [
+        "userId"
+      ],
+      "$notificationId": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || data.child('userId').val() === auth.uid)",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (!data.exists() && newData.child('createdBy').val() === auth.uid) || (data.exists() && data.child('userId').val() === auth.uid))",
+        ".validate": "newData.hasChildren(['userId', 'type', 'title', 'message', 'read', 'createdBy', 'createdAt'])",
+        "userId": {
+          ".validate": "newData.isString() && newData.val().length <= 128 && (!data.exists() || data.val() === newData.val())"
+        },
+        "createdBy": {
+          ".validate": "newData.isString() && newData.val().length <= 128 && (!data.exists() || data.val() === newData.val())"
+        },
+        "type": {
+          ".validate": "newData.isString() && newData.val().length <= 40 && (!data.exists() || data.val() === newData.val())"
+        },
+        "title": {
+          ".validate": "newData.isString() && newData.val().length <= 200 && (!data.exists() || data.val() === newData.val())"
+        },
+        "message": {
+          ".validate": "newData.isString() && newData.val().length <= 800 && (!data.exists() || data.val() === newData.val())"
+        },
+        "read": {
+          ".validate": "newData.isBoolean()"
+        },
+        "createdAt": {
+          ".validate": "newData.isString() && newData.val().length <= 40 && (!data.exists() || data.val() === newData.val())"
+        },
+        "appointmentId": {
+          ".validate": true
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "activityLogs": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".indexOn": [
+        "createdAt"
+      ],
+      "$logId": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (!data.exists() && newData.exists() && newData.child('actorId').val() === auth.uid))",
+        ".validate": "newData.hasChildren(['type', 'message', 'actorId', 'createdAt'])",
+        "type": {
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "message": {
+          ".validate": "newData.isString() && newData.val().length <= 500"
+        },
+        "actorId": {
+          ".validate": "newData.isString() && newData.val().length <= 128"
+        },
+        "actorName": {
+          ".validate": "newData.isString() && newData.val().length <= 100"
+        },
+        "actorRole": {
+          ".validate": "newData.isString() && newData.val().length <= 20"
+        },
+        "createdAt": {
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}
